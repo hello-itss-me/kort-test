@@ -3,7 +3,7 @@ import React, { useState } from 'react';
     import { supabase } from '../../lib/supabase';
     import { toast } from 'react-hot-toast';
     import { useProductData } from '../../hooks/useProductData';
-    import { QRScanner } from '../QRScanner';
+    import QRScanner from '../QRScanner';
 
     export function DisassemblyForm() {
       const [formData, setFormData] = useState({
@@ -16,6 +16,7 @@ import React, { useState } from 'react';
       });
 
       const { fetchProductData } = useProductData(setFormData);
+      const [isScannerOpen, setIsScannerOpen] = useState(false);
 
       const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -27,8 +28,15 @@ import React, { useState } from 'react';
       };
 
       const handleScanResult = (result: string) => {
-        setFormData(prev => ({ ...prev, motorId: result }));
-        fetchProductData(result);
+        const url = new URL(result);
+        const id = url.searchParams.get('id');
+        if (id) {
+          setFormData(prev => ({ ...prev, motorId: id }));
+          fetchProductData(id);
+        } else {
+          toast.error('Не удалось извлечь ID из QR-кода');
+        }
+        setIsScannerOpen(false);
       };
 
       const handleSubmit = async (e: React.FormEvent) => {
@@ -70,8 +78,15 @@ import React, { useState } from 'react';
                 placeholder="Введите ID электродвигателя"
                 className="flex-grow mr-2"
               />
-              <QRScanner onResult={handleScanResult} />
+              <button
+                type="button"
+                onClick={() => setIsScannerOpen(!isScannerOpen)}
+                className="submit-button"
+              >
+                {isScannerOpen ? 'Закрыть QR' : 'Сканировать QR'}
+              </button>
             </div>
+            {isScannerOpen && <QRScanner onResult={handleScanResult} isScannerOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} />}
           </div>
           <FormField
             label="Название товара"
